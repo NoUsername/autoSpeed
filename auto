@@ -1,0 +1,8 @@
+#/bin/sh
+
+# run autospeed and pipe logoutput to the system logger
+# read output via 'logread' or 'logread -f'
+printf "starting autospeed\n"
+(printf "starting\n"; python -u /root/autoSpeed.py) | logger -s -t 'AUTO_SPD'
+
+
