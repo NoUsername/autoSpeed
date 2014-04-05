@@ -118,6 +118,7 @@ def mainLoop():
 	adjustTimes = [time.time()]
 	adjustedCount = 0
 	adjusted = False
+	rereadSpeedCap()
 
 	while True:
 		adjusted = False
@@ -133,7 +134,7 @@ def mainLoop():
 					adjustTimes.append(time.time())
 					adjustedCount += 1
 					adjusted = True
-		print("adjusted" if adjusted else "not adjusted")
+		if adjusted: print("adjusted (#%s)"%adjustedCount)
 		time.sleep(SLEEPTIME)
 		if time.time() - adjustTimes[-1] > ADJUST_RESET_TIMEOUT:
 			rereadSpeedCap()
