@@ -1,0 +1,25 @@
+#!/bin/sh /etc/rc.common
+
+START=90
+STOP=91
+
+PROC=sh
+PROC_ARGS=/root/auto
+PIDFILE=/var/run/autoSpeed.pid
+
+start() {
+  if [ -f ${PIDFILE} ]; then
+    printf "already running\n"; exit 1;
+  fi
+  touch ${PIDFILE}
+  start-stop-daemon -S -x ${PROC} -b -- ${PROC_ARGS} & 
+  printf "started\n"
+}
+
+stop() {
+  rm ${PIDFILE}
+  kill $(ps www  | grep -e "[p]ython.*autoSpeed"  | cut -d' ' -f 3)
+  printf "stopped\n"
+}
+
+

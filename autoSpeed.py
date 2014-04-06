@@ -86,6 +86,7 @@ def rereadSpeedCap():
 
 def setSpeedCap(speed):
 	global BANDWIDTH
+	speed = long(speed)
 	speed = max(speed, BW_CAP_MIN)
 	speed = min(speed, BW_CAP_MAX)
 	runCommand("sh speedCap %s"%speed)
@@ -111,7 +112,7 @@ def adjust(direction):
 	else:
 		nextStep = nextStep / 2
 
-	BANDWIDTH["nextStep"] = min(max(nextStep, BW_CAP_MINSTEP), BW_CAP_MAXSTEP)
+	BANDWIDTH["nextStep"] = long(min(max(nextStep, BW_CAP_MINSTEP), BW_CAP_MAXSTEP))
 	BANDWIDTH["lastDirection"] = direction
 
 def mainLoop():
