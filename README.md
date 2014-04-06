@@ -14,4 +14,28 @@ The python script (autoSpeed.py) measures ping times and current throughput on a
 
 If the ping times are good and there is some significant traffic going on, it will also try to increase the speed limit again to provide good utilization of the available bandwidth.
 
+## What's included
+
+	autoSpeed.init
+		init script for OpenWrt, do this to use it:
+		cp autoSpeed.init /etc/init.d/autoSpeed; chmod ugo+x /etc/init.d/autoSpeed
+		# activate it
+		/etc/init.d/autoSpeed enable
+
+	auto
+		wrapper start script that runs the python script and pipes its output to logger so you can see it via "logread"
+
+	speedCap
+		a small wrapper script for getting/setting the speedCap for wshaper
+
+	inetSpeed
+		not really required, or an actual part of speedCap, just a command i often used for looking at the current throughput
+
+
+## Dependencies:
+
+* Python (2.7)
+* Wshaper
+
+
 by Paul Klingelhuber, 2014
