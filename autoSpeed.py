@@ -6,28 +6,28 @@ DOWN="down"
 UP="up"
 
 NWIF = "3g-umts"
-DEBUG = True
+DEBUG = False
+DEBUG2 = True
 
-PING_THRES_HIGH = 550
-PING_THRES_LOW = 400
+PING_THRES_HIGH = 800 #550
+PING_THRES_LOW = 450
 
 ADJUST_UP_TIMEOUT = 30
 ADJUST_RESET_TIMEOUT = 60*30
 
 # bandwith cap values
-BW_CAP_DEFAULT=4000
-BW_CAP_MAX=8000
-BW_CAP_MIN=700
 BW_CAP_MINSTEP=100
 BW_CAP_MAXSTEP=1000
 # min measured badwith to step up (kb/s)
 BW_MIN_ADJUST=140
 
-BANDWIDTH = {
-"current":BW_CAP_DEFAULT,
-"nextStep":1000,
-"lastDirection":UP
-}
+BW_STEPS = [500,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,7000]
+BW_IDX_DEFAULT = 7
+
+class BANDWIDTH:
+	currentIdx = BW_IDX_DEFAULT
+	current = BW_STEPS[BW_IDX_DEFAULT]
+	lastDirection = UP
 
 SLEEPTIME=10
 
@@ -57,22 +57,36 @@ def getThroughput():
 	time.sleep(1)
 	result = getReceivedBytes() - bytes
 	if DEBUG: print("throughput result %s"%result)
-	return result
+	return long(result/1024)
+
+def getCurrentThroughputUpperThres():
+	currentSpeedCap = rereadSpeedCap()
+	return long(currentSpeedCap/10)
 
 def adjustmentDownNeeded():
+	return adjustmentDownNeededIntern(1)
+
+def adjustmentDownNeededIntern(remaining):
 	badCount = 0
-	for i in xrange(2):
+	NUM_PINGS = 3
+	for i in xrange(NUM_PINGS):
 		ping = measurePing()
 		if ping > PING_THRES_HIGH:
 			badCount += 1
-	if badCount > 1:
+	if badCount == NUM_PINGS:
+		if remaining > 0:
+			time.sleep(2)
+			return adjustmentDownNeededIntern(remaining-1)
 		return True
 	return False
 
 def adjustmentUpNeeded():
-	speed = getThroughput()
-	if (speed/1024) > BW_MIN_ADJUST:
-		if measurePing() < PING_THRES_LOW:
+	ping = measurePing()
+	if ping < PING_THRES_LOW:
+		speedThres = getCurrentThroughputUpperThres()
+		speed = getThroughput()
+		if DEBUG2: print("measured: %s thres: %s"%(speed, speedThres))
+		if speed > speedThres:
 			return True
 	return False
 
@@ -80,48 +94,48 @@ def getRealSpeedCap():
 	speed = runCommand("sh speedCap -p")
 	return long(speed)
 
+def findBwIdx(value):
+	for i in xrange(len(BW_STEPS)):
+		if BW_STEPS[i] >= value:
+			return i
+	return len(BW_STEPS)-1
+
 def rereadSpeedCap():
 	global BANDWIDTH
-	BANDWIDTH["current"] = getRealSpeedCap()
+	BANDWIDTH.current = getRealSpeedCap()
+	BANDWIDTH.currentIdx = findBwIdx(BANDWIDTH.current)
+	return BANDWIDTH.current
 
 def setSpeedCap(speed):
 	global BANDWIDTH
 	speed = long(speed)
-	speed = max(speed, BW_CAP_MIN)
-	speed = min(speed, BW_CAP_MAX)
+	speed = max(speed, BW_STEPS[0])
+	speed = min(speed, BW_STEPS[-1])
 	runCommand("sh speedCap %s"%speed)
-	BANDWIDTH["current"] = speed
+	BANDWIDTH.current = speed
+	BANDWIDTH.currentIdx = findBwIdx(BANDWIDTH.current)
 
 def adjust(direction):
 	global BANDWIDTH
-	last = BANDWIDTH["lastDirection"]
-	nextStep = BANDWIDTH["nextStep"]
-	current = BANDWIDTH["current"]
+	idx = BANDWIDTH.currentIdx
 	if direction == UP:
-		print("adjusting up")
-		speed = current + nextStep
-		setSpeedCap(speed)
+		idx += 1
 	else:
-		print("adjusting down")
-		speed = current - nextStep
-		setSpeedCap(speed)
-	print("set speedCap to %s"%speed)
-
-	if last == direction:
-		nextStep = nextStep * 1.5
-	else:
-		nextStep = nextStep / 2
-
-	BANDWIDTH["nextStep"] = long(min(max(nextStep, BW_CAP_MINSTEP), BW_CAP_MAXSTEP))
-	BANDWIDTH["lastDirection"] = direction
+		idx -= 1
+	idx = min(max(0, idx), len(BW_STEPS)-1)
+	print("adjusting %s to %s"%("UP" if direction==UP else "DOWN", BW_STEPS[idx]))
+	setSpeedCap(BW_STEPS[idx])
 
 def mainLoop():
 	adjustTimes = [time.time()]
 	adjustedCount = 0
 	adjusted = False
 	rereadSpeedCap()
+	print("current idx & speed (%s, %s)"%(BANDWIDTH.currentIdx, BANDWIDTH.current))
 
 	while True:
+		speed = getThroughput()
+		if DEBUG: print("current measured throughput %s"%(speed))
 		adjusted = False
 		if adjustmentDownNeeded():
 			adjust(DOWN)
@@ -137,28 +151,29 @@ def mainLoop():
 					adjusted = True
 		if adjusted: print("adjusted (#%s)"%adjustedCount)
 		time.sleep(SLEEPTIME)
+		# remove old switching entries (leave one)
+		while len(adjustTimes) > 1 and (time.time() - adjustTimes[0]) > 60:
+			adjustTimes = adjustTimes[1:]
 		if time.time() - adjustTimes[-1] > ADJUST_RESET_TIMEOUT:
 			rereadSpeedCap()
-			if BANDWIDTH["current"] < BW_CAP_DEFAULT:
-				setSpeedCap(BW_CAP_DEFAULT)
+			if BANDWIDTH.current < BW_STEPS[BW_IDX_DEFAULT]:
+				setSpeedCap(BW_STEPS[BW_IDX_DEFAULT])
 			adjustTimes = [time.time()]
-			BANDWIDTH["lastStep"] = 1000
 			print("resetting adjustment stats")
 
 if runCommand('uname -a').lower().find("openwrt") == -1:
 	print("not running on router")
 	NWIF = "wlan0"
 
+def testLoop():
+	rereadSpeedCap()
+	print("current speedCap is %s"%BANDWIDTH.current)
+	while True:
+		print("measured %s ping, %s throughput"%(measurePing(), getThroughput()))
+		print("should turn up? %s"%adjustmentUpNeeded())
+		print("should turn down? %s"%adjustmentDownNeeded())
+		time.sleep(1)
+
 print("real current cap: %s"%getRealSpeedCap())
-
+#testLoop()
 mainLoop()
-
-while True:
-	#print("adjustment? %s"%adjustmentNeeded())
-	print("speed %s"%(getThroughput()/1024))
-import sys
-sys.exit(0)
-
-while True:
-	print("throughput: %s"%(getThroughput()/1024))
-
