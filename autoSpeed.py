@@ -127,7 +127,7 @@ def adjust(direction):
 	print("adjusting %s to %s"%("UP" if direction==UP else "DOWN", BW_STEPS[idx]))
 	setSpeedCap(BW_STEPS[idx])
 
-def mainLoop():
+def adjustLoop():
 	adjustTimes = [time.time()]
 	adjustedCount = 0
 	adjusted = False
@@ -162,10 +162,6 @@ def mainLoop():
 			adjustTimes = [time.time()]
 			print("resetting adjustment stats")
 
-if runCommand('uname -a').lower().find("openwrt") == -1:
-	print("not running on router")
-	NWIF = "wlan0"
-
 def testLoop():
 	rereadSpeedCap()
 	print("current speedCap is %s"%BANDWIDTH.current)
@@ -175,9 +171,14 @@ def testLoop():
 		print("should turn down? %s"%adjustmentDownNeeded())
 		time.sleep(1)
 
-print("real current cap: %s"%getRealSpeedCap())
-#testLoop()
-try:
-	mainLoop()
-except:
-	traceback.print_exc(None, open('error.log', 'w'))
+if runCommand('uname -a').lower().find("openwrt") == -1:
+	print("not running on router")
+	NWIF = "wlan0"
+
+if __name__== "__main__":
+	print("real current cap: %s"%getRealSpeedCap())
+	#testLoop()
+	try:
+		adjustLoop()
+	except:
+		traceback.print_exc(None, open('error.log', 'w'))

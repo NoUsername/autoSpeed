@@ -7,6 +7,7 @@ waitForInet() {
 	done
 }
 
+python autoSpeedUi.py&
 printf "starting autospeed\n"
 while true; do
 	waitForInet
