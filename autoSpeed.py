@@ -2,6 +2,7 @@ import subprocess
 import os
 import time
 import re
+import traceback
 DOWN="down"
 UP="up"
 
@@ -176,4 +177,7 @@ def testLoop():
 
 print("real current cap: %s"%getRealSpeedCap())
 #testLoop()
-mainLoop()
+try:
+	mainLoop()
+except:
+	traceback.print_exc(None, open('error.log', 'w'))

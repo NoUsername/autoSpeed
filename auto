@@ -1,8 +1,17 @@
 #/bin/sh
 
-# run autospeed and pipe logoutput to the system logger
-# read output via 'logread' or 'logread -f'
-printf "starting autospeed\n"
-(printf "starting\n"; python -u /root/autoSpeed.py) | logger -s -t 'AUTO_SPD'
+waitForInet() {
+	while [ !`ifconfig 3g-umts` ]; do
+		echo "waiting for wifi"
+		sleep 10
+	done
+}
 
+printf "starting autospeed\n"
+while true; do
+	waitForInet
+	(printf "starting autoSpeed\n"; python -u /root/autoSpeed.py) | logger -s -t 'AUTO_SPD'
+	printf "autoSpeed crashed"
+	sleep 5
+done
 
