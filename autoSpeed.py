@@ -38,6 +38,8 @@ def runCommand(command):
 def measurePing():
 	result = runCommand("ping -c 3 8.8.8.8 | grep min/avg/max")
 	m = re.search("\d+/(\d+).?(\d+)?/", result)
+	if m == None:
+		return None
 	if len(m.groups()) > 0:
 		result = m.group(1)
 		if DEBUG: print("ping result %s"%result)
@@ -47,6 +49,8 @@ def measurePing():
 def getReceivedBytes():
 	result = runCommand("ifconfig %s | grep \"RX bytes\""%NWIF)
 	m = re.search("RX bytes:(\d+)", result)
+	if m == None:
+		return None
 	if len(m.groups()) > 0:
 		return long(m.group(1))
 	return None
@@ -56,7 +60,10 @@ def getThroughput():
 	if bytes == None:
 		return None
 	time.sleep(1)
-	result = getReceivedBytes() - bytes
+	bytesAfter = getReceivedBytes()
+	if bytesAfter == None
+		return None
+	result = bytesAfter - bytes
 	if DEBUG: print("throughput result %s"%result)
 	return long(result/1024)
 
@@ -72,7 +79,7 @@ def adjustmentDownNeededIntern(remaining):
 	NUM_PINGS = 3
 	for i in xrange(NUM_PINGS):
 		ping = measurePing()
-		if ping > PING_THRES_HIGH:
+		if ping != None and ping > PING_THRES_HIGH:
 			badCount += 1
 	if badCount == NUM_PINGS:
 		if remaining > 0:
@@ -83,7 +90,7 @@ def adjustmentDownNeededIntern(remaining):
 
 def adjustmentUpNeeded():
 	ping = measurePing()
-	if ping < PING_THRES_LOW:
+	if ping != None and ping < PING_THRES_LOW:
 		speedThres = getCurrentThroughputUpperThres()
 		speed = getThroughput()
 		if DEBUG2: print("measured: %s thres: %s"%(speed, speedThres))
