@@ -61,7 +61,7 @@ def getThroughput():
 		return None
 	time.sleep(1)
 	bytesAfter = getReceivedBytes()
-	if bytesAfter == None
+	if bytesAfter == None:
 		return None
 	result = bytesAfter - bytes
 	if DEBUG: print("throughput result %s"%result)
