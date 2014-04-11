@@ -3,22 +3,22 @@
 START=90
 STOP=91
 
-PROC=sh
-PROC_ARGS=/root/auto
-PIDFILE=/var/run/autoSpeed.pid
+APP=/bin/sh
+APP_ARGS=" /root/auto"
+PID_FILE=/var/run/autoSpeed.pid
 
 start() {
-  if [ -f ${PIDFILE} ]; then
+  if [ -f "${PID_FILE}" ]; then
     printf "already running\n"; exit 1;
   fi
-  touch ${PIDFILE}
-  start-stop-daemon -S -x ${PROC} -b -- ${PROC_ARGS} & 
+  start-stop-daemon -S -b -m -p $PID_FILE -x $APP -- $APP_ARGS
   printf "started\n"
 }
 
 stop() {
-  rm ${PIDFILE}
+  start-stop-daemon -K -p $PID_FILE -s TERM
   kill $(ps www  | grep -e "[p]ython.*autoSpeed"  | cut -c 0-6)
+  rm ${PID_FILE}
   printf "stopped\n"
 }
 
