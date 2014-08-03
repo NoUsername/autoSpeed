@@ -4,7 +4,7 @@ collection of small scripts i use on my OpenWrt router for dynamically shaping b
 
 The problem is that my 3g internet sometimes gives me 6MBit but sometimes only 1MBit
 
-Wha makes it even worse is that when it is slow and i start a download, my ping rates quickly rise from about 300ms to over 1.2 seconds! You can imagine that the internet connection isn't usable anymore at that point.
+What makes it even worse is that when it is slow and i start a download, my ping rates quickly rise from about 300ms to over 1.2 seconds! You can imagine that the internet connection isn't usable anymore at that point.
 
 The only solution I found so far is to set a hard limit on the bandwidth in these cases to a value which will bring the ping times down to a reasonable level (<500ms).
 
